@@ -20,7 +20,7 @@ The M5 data contains more than five years of daily sales for 30,490 item-store s
 
 1. Data-quality and demand-pattern audit.
 2. Seasonal-naive baseline.
-3. Global gradient-boosting model using lag, rolling and calendar features.
+3. Global LightGBM plus Prophet, NeuralProphet and SARIMAX comparison with weekly/yearly seasonality and M5 events.
 4. Leakage-free backtesting over a 28-day future horizon.
 5. Evaluation with MAE, WAPE and RMSSE.
 6. Inventory simulation translating forecast error into stockouts, holding cost and service level.
@@ -40,6 +40,18 @@ The first 28-day backtest uses `d_1`–`d_1913` for training and `d_1914`–`d_1
 | Last observed value | 1.3730 | 95.16% | 1.2063 | -13.19% |
 
 The best transparent hybrid combines 75% of the moving-average baseline with 25% of the global LightGBM forecast. It reaches **73.77% WAPE**, slightly improving the 73.86% baseline while reducing estimated stockout units by 8.4%.
+
+A separate model comparison aggregates demand to the 10 store totals and uses the same 28-day holdout. At this higher level, the store-level LightGBM model leads with **7.85% WAPE**. Prophet reaches **9.74%**, close to the 28-day seasonal-naive benchmark at **9.13%**. NeuralProphet and SARIMAX are also included, with their results shown transparently in the forecasting notebook. These store-total scores are not directly comparable to the item-store scores above.
+
+| Store-level model | MAE (units/day) | WAPE | Bias |
+|---|---:|---:|---:|
+| Global LightGBM (store-level) | 345.31 | 7.85% | 5.03% |
+| Seasonal naive, 28 days | 401.85 | 9.13% | 3.91% |
+| Seasonal naive, 7 days | 427.89 | 9.73% | 7.36% |
+| Prophet | 428.65 | 9.74% | 7.28% |
+| NeuralProphet | 579.47 | 13.17% | -8.47% |
+| SARIMAX | 579.69 | 13.18% | 4.41% |
+| Mean of last 28 days | 606.34 | 13.78% | 3.91% |
 
 ## Live portfolio dashboard
 
@@ -96,7 +108,7 @@ The complete work is organized as executable notebooks:
 2. **[`00_RUN_COMPLETE_PROJECT_IN_COLAB.ipynb`](notebooks/00_RUN_COMPLETE_PROJECT_IN_COLAB.ipynb)** — easiest end-to-end option; configures Colab and runs the complete project.
 3. [`01_m5_demand_forecasting.ipynb`](notebooks/01_m5_demand_forecasting.ipynb) — data access and statistical baseline.
 4. [`02_data_cleaning_and_eda.ipynb`](notebooks/02_data_cleaning_and_eda.ipynb) — cleaning, executive analysis and five-year seasonality.
-5. [`03_lightgbm_forecasting.ipynb`](notebooks/03_lightgbm_forecasting.ipynb) — global model, hybrids and holdout evaluation.
+5. [`03_lightgbm_forecasting.ipynb`](notebooks/03_lightgbm_forecasting.ipynb) — global LightGBM, hybrid baselines, Prophet, NeuralProphet and SARIMAX on a shared store-level holdout.
 6. [`04_inventory_decisions.ipynb`](notebooks/04_inventory_decisions.ipynb) — safety stock, reorder points and inventory trade-offs.
 
 Each notebook independently downloads Kaggle data and performs its own transformations. No hidden project scripts are required. GitHub renders every notebook; JupyterLab, VS Code, Kaggle and Google Colab can run and edit them.
