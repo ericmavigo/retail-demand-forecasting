@@ -25,6 +25,14 @@ item_metrics = d["model_metrics"].copy()
 store_metrics = d["store_model_comparison"].copy()
 item_best = item_metrics.sort_values("WAPE").iloc[0]
 store_best = store_metrics.sort_values("WAPE").iloc[0]
+item_names = {
+    "hybrid_25pct_lgbm": "Hybrid · 25% LightGBM",
+    "mean_last_28": "28-day moving average",
+    "hybrid_50pct_lgbm": "Hybrid · 50% LightGBM",
+    "hybrid_75pct_lgbm": "Hybrid · 75% LightGBM",
+    "global_lightgbm": "Global LightGBM",
+}
+item_best_name = item_names.get(item_best.model, item_best.model.replace("_", " ").title())
 baseline = item_metrics.loc[item_metrics.model.eq("mean_last_28")].iloc[0]
 inv = d["inventory_summary"]
 stockout_reduction = 1 - inv.iloc[1].stockout_units / inv.iloc[0].stockout_units
@@ -54,9 +62,9 @@ st.markdown('<div class="section-kicker">Executive readout</div>', unsafe_allow_
 hero_cols = st.columns(4)
 hero_cols[0].metric("Units sold", f"{daily.units.sum()/1e6:.1f}M")
 hero_cols[1].metric("Estimated revenue", f"${daily.estimated_revenue.sum()/1e6:.1f}M")
-hero_cols[2].metric("Item-store winner", item_best.model.replace("_", " "), f"{item_best.WAPE:.2%} WAPE")
-hero_cols[3].metric("Store-total winner", store_best.model, f"{store_best.WAPE:.2%} WAPE")
-st.info(f"**Two answers at two levels:** the item-store hybrid leads on individual series ({item_best.WAPE:.2%} WAPE), while Global LightGBM leads after all products are added up inside each store ({store_best.WAPE:.2%}). These scores have different aggregation levels, so compare models within each panel.")
+hero_cols[2].metric("Best item-store model", item_best_name, f"{item_best.WAPE:.2%} WAPE · lower is better", delta_color="off")
+hero_cols[3].metric("Best store-total model", store_best.model, f"{store_best.WAPE:.2%} WAPE · lower is better", delta_color="off")
+st.info(f"**Two answers at two levels:** **{item_best_name}** leads on individual item-store series ({item_best.WAPE:.2%} WAPE), while **{store_best.model}** leads after products are combined inside each store ({store_best.WAPE:.2%}). The aggregation differs, so compare models within each panel.")
 
 st.markdown('<div class="section-kicker">01 · The forecasting challenge</div>', unsafe_allow_html=True)
 st.header("Which model sees demand most clearly?")
@@ -65,6 +73,7 @@ left, right = st.columns(2, gap="large")
 with left:
     st.subheader("Item × store")
     plot_item = item_metrics.assign(WAPE_percent=100*item_metrics.WAPE).sort_values("WAPE_percent", ascending=True)
+    plot_item["model"] = plot_item.model.map(item_names).fillna(plot_item.model)
     fig = px.bar(plot_item, x="WAPE_percent", y="model", orientation="h", text="WAPE_percent",
                  title="Forecast error across item-store series", labels={"WAPE_percent":"WAPE (%)", "model":""},
                  color="WAPE_percent", color_continuous_scale=["#8DD3C7", "#167D72"])
@@ -72,7 +81,7 @@ with left:
     fig.update_layout(coloraxis_showscale=False, height=370, margin=dict(l=8,r=45,t=55,b=15))
     st.plotly_chart(fig, width="stretch")
     item_table = item_metrics[["model", "MAE", "WAPE", "RMSSE", "Bias"]].copy()
-    item_table["model"] = item_table.model.str.replace("_", " ", regex=False)
+    item_table["model"] = item_table.model.map(item_names).fillna(item_table.model)
     item_table["MAE"] = item_table.MAE.map(lambda x: f"{x:.3f}")
     for col in ["WAPE", "Bias"]: item_table[col] = item_table[col].map(lambda x: f"{x:+.2%}" if col == "Bias" else f"{x:.2%}")
     item_table["RMSSE"] = item_table.RMSSE.map(lambda x: f"{x:.3f}")
@@ -168,5 +177,54 @@ with st.expander("Method, model settings and limitations"):
     **Interpretation.** WAPE and MAE across aggregation levels are not comparable. Lower error is better within the same panel. Revenue is estimated from units × selling price; M5 has no transaction or basket identifier, inventory-on-hand, or purchase-order history. Inventory results are scenario estimates rather than observed operational outcomes.
     """)
     st.markdown("[Open the executable forecasting notebook](https://colab.research.google.com/github/ericmavigo/retail-demand-forecasting/blob/main/notebooks/03_lightgbm_forecasting.ipynb) · [Explore the repository on GitHub](https://github.com/ericmavigo/retail-demand-forecasting)")
+
+with st.expander("Step-by-step walkthrough: from raw M5 data to the inventory decision"):
+    st.markdown("""
+### 1. Start with the business decision
+
+The target is daily units sold, and the planning horizon is 28 days. We forecast at two grains because a buyer may need both product-level replenishment guidance and an overall store demand view: 30,490 item-store series and 10 store-total series. Model scores only have meaning relative to the grain, horizon and test window that produced them.
+
+### 2. Map the source tables before joining them
+
+The official M5 files contain daily sales, a calendar, weekly prices, a validation snapshot and a submission template. Sales uses columns `d_1`–`d_1941`; `calendar.csv` translates day IDs into dates, retail weeks, weekdays and named events. Weekly prices join on `(store_id, item_id, wm_yr_wk)`. The 28 zeros in `sample_submission.csv` are placeholders, not historical sales labels.
+
+### 3. Audit the data before trusting an estimate
+
+The audit checks dimensions, types, nulls, duplicate keys, date continuity, hierarchy values and cross-table coverage. It found 30,490 item-store rows, 3,049 products, 10 stores and 1,941 evaluation days. Calendar and price keys are unique; the 6,841,121 weekly price rows have no missing prices, and every positive-sales observation found a matching price. Blank event names mean no named event was recorded. About 68% of item-store-day demand is zero; these are valid zero sales observations, not null values.
+
+### 4. Explore first, then choose features
+
+The notebooks plot five-year demand, weekdays, months, year-over-year seasonal curves, stores, categories, products and named-event days. This exploration checks whether shared patterns or calendar effects are plausible features and where model errors may differ. Event lifts are descriptive comparisons, not causal effects: event dates were not randomized.
+
+### 5. Protect the future in the evaluation
+
+The fixed test is the final 28 observed days: train on `d_1`–`d_1913`, forecast `d_1914`–`d_1941`. A random split would leak the future into the past. LightGBM predicts one day at a time; predicted values, not actual test demand, supply the lags for later forecast days. All candidates in each model comparison use the same dates and targets.
+
+### 6. Make the simple benchmark earn its place
+
+We compare the last value, seven- and 28-day recent means, and repeated 7- and 28-day patterns. The 28-day mean is the strongest initial SKU-store reference: MAE 1.0657, WAPE 73.86%, RMSSE 0.9240 and +3.91% signed underforecast bias. It is transparent and cheap to maintain, so a new model must show a measurable improvement on this untouched window.
+
+### 7. Why add global LightGBM?
+
+One gradient-boosted tree model learns across many item-store series rather than treating every series independently. That lets it share information while representing nonlinear interactions among IDs, hierarchy, calendar and recent demand. The target is a nonnegative count, so the notebook uses a Poisson objective. Features are product/store/department/category/state IDs; demand lags at 1, 7, 14, 28 and 56 days; rolling means over prior 7 and 28 days; month, weekday and event presence. Each training feature is calculated only from days before its target.
+
+The pure model reaches 76.54% SKU-store WAPE, worse than the 73.86% simple baseline. That is why we do not recommend replacing the baseline with LightGBM at this grain. Transparent blends test whether a smaller model contribution helps: 75% baseline + 25% LightGBM reaches 73.77% WAPE, only about 0.09 percentage points better. The 50/50 and 75%-LightGBM blends are worse, so more model weight is not better here.
+
+### 8. Why Prophet, NeuralProphet and SARIMAX?
+
+These are comparison families with different assumptions, not models selected in advance as winners. Prophet represents trend and weekly/yearly seasonal components with named events. NeuralProphet tests a neural autoregressive extension with similar seasonal structure. SARIMAX represents weekly autoregression, annual Fourier seasonality, weekdays and event indicators as exogenous regressors. Fitting every model separately to 30,490 sparse series would be unnecessarily slow, so these families are fairly compared after aggregating demand to the same 10 stores and the same 28-day test. At that store-total grain, LightGBM leads at 7.85% WAPE, the 28-day seasonal naive is 9.13%, Prophet is 9.74%, NeuralProphet is 13.17% and SARIMAX is 13.18%.
+
+### 9. Read more than one metric
+
+MAE expresses average error in units per series per day. WAPE divides total absolute error by total actual demand. RMSSE scales squared errors by historical one-day changes and averages across usable series. Bias is `(actual − forecast) / actual` in this project, so a positive value means underforecasting and a negative value means overforecasting. Lower error is preferred within the same panel, but WAPE/MAE across SKU-store and store-total panels are not comparable.
+
+### 10. Convert forecast error into a scenario, not a promise
+
+The inventory illustration assumes seven days of supplier lead time, `z = 1.65` for an approximate 95% service target, stockout penalty weight 3 and holding penalty weight 1. Safety stock is estimated as `1.65 × recent residual standard deviation × sqrt(7)`; reorder point is forecast lead-time demand plus safety stock. Under these assumptions, the 25% LightGBM blend reduces held-out shortage units by about 8.4% but raises excess units by about 5.7%. This is the expected trade-off when ordering more reduces underforecasting.
+
+M5 contains no inventory-on-hand, purchase orders, actual supplier lead times, lost-sales records, shelf life or product margins. The inventory numbers are therefore an analytical scenario, not measured savings, a service guarantee or an order recommendation. Before operational use, this needs rolling-origin validation and real replenishment and cost data.
+
+For the full audit trail, see the [detailed project walkthrough](https://github.com/ericmavigo/retail-demand-forecasting/blob/main/docs/PROJECT_WALKTHROUGH.md) and the [complete Colab workflow](https://colab.research.google.com/github/ericmavigo/retail-demand-forecasting/blob/main/notebooks/00_RUN_COMPLETE_PROJECT_IN_COLAB.ipynb).
+""")
 
 st.caption("Built by Eric Villegas · Data science and operations portfolio · M5 Forecasting dataset")
