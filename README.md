@@ -1,6 +1,6 @@
 # Retail Demand Forecasting and Inventory Decisions
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://eric-retail-demand-forecasting.streamlit.app/)
 
 Portfolio project based on the **M5 Forecasting - Accuracy** dataset. The project turns daily retail history into a reproducible forecasting workflow and a practical inventory decision tool.
 
@@ -35,11 +35,11 @@ The first 28-day backtest uses `d_1`–`d_1913` for training and `d_1914`–`d_1
 | Seasonal lag 28 | 1.2840 | 89.00% | 1.2445 | 3.91% |
 | Last observed value | 1.3730 | 95.16% | 1.2063 | -13.19% |
 
-The next model must beat 73.86% WAPE on the same holdout period.
+The best transparent hybrid combines 75% of the moving-average baseline with 25% of the global LightGBM forecast. It reaches **73.77% WAPE**, slightly improving the 73.86% baseline while reducing estimated stockout units by 8.4%.
 
 ## Live portfolio dashboard
 
-The repository includes `streamlit_app.py`, a recruiter-friendly presentation of the business problem, dataset audit, methodology and baseline results. It uses only derived metrics; the competition CSV files remain local and are excluded from Git.
+The repository includes `streamlit_app.py`, a recruiter-friendly presentation of executive KPIs, five-year seasonality, stores, products, model performance and inventory decisions. It uses only derived metrics; the competition CSV files remain local and are excluded from Git.
 
 Run it locally with:
 
@@ -85,11 +85,19 @@ The audit writes `reports/data_audit.json` and `reports/data_audit.md`. The back
 ```text
 data/raw/       Kaggle files (ignored by Git)
 notebooks/      Editable end-to-end Python analysis
+app_data/       Small aggregated tables used by the public dashboard
 reports/        Generated audit and model reports
 src/            Reusable Python code
 ```
 
-Start with [`notebooks/01_m5_demand_forecasting.ipynb`](notebooks/01_m5_demand_forecasting.ipynb). GitHub renders it for reading; JupyterLab, VS Code, Kaggle and Google Colab can run and edit it.
+The complete work is organized as executable notebooks:
+
+1. [`01_m5_demand_forecasting.ipynb`](notebooks/01_m5_demand_forecasting.ipynb) — data access and statistical baseline.
+2. [`02_data_cleaning_and_eda.ipynb`](notebooks/02_data_cleaning_and_eda.ipynb) — cleaning, executive analysis and five-year seasonality.
+3. [`03_lightgbm_forecasting.ipynb`](notebooks/03_lightgbm_forecasting.ipynb) — global model, hybrids and holdout evaluation.
+4. [`04_inventory_decisions.ipynb`](notebooks/04_inventory_decisions.ipynb) — safety stock, reorder points and inventory trade-offs.
+
+GitHub renders every notebook; JupyterLab, VS Code, Kaggle and Google Colab can run and edit them.
 
 ## Portfolio narrative
 

@@ -1,133 +1,81 @@
-"""Public portfolio dashboard for the M5 demand forecasting project."""
-
-from __future__ import annotations
-
+"""Interactive portfolio dashboard for the M5 demand forecasting project."""
+from pathlib import Path
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
+st.set_page_config(page_title="Retail Demand Forecasting", page_icon="📦", layout="wide")
+DATA = Path(__file__).parent / "app_data"
 
-st.set_page_config(
-    page_title="Retail Demand Forecasting",
-    page_icon="📦",
-    layout="wide",
-)
+@st.cache_data
+def load_data():
+    names = ["daily_overview","weekly_overview","store_summary","category_summary","department_summary","product_summary","event_summary","model_metrics","forecast_daily","forecast_by_store","feature_importance","inventory_summary"]
+    result = {name: pd.read_csv(DATA / f"{name}.csv") for name in names}
+    for name in ["daily_overview","weekly_overview","forecast_daily"]:
+        result[name]["date"] = pd.to_datetime(result[name]["date"])
+    return result
 
-st.markdown(
-    """
-    <style>
-    .block-container {max-width: 1100px; padding-top: 2.4rem;}
-    [data-testid="stMetric"] {
-        background: #f5f7fa;
-        border: 1px solid #e6e9ef;
-        border-radius: 14px;
-        padding: 18px;
-    }
-    h1, h2, h3 {letter-spacing: -0.025em;}
-    .eyebrow {color:#52606d; font-size:.85rem; font-weight:700; letter-spacing:.08em;}
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-st.markdown('<p class="eyebrow">DATA SCIENCE · FORECASTING · INVENTORY</p>', unsafe_allow_html=True)
+d = load_data(); daily=d["daily_overview"]; weekly=d["weekly_overview"]
+st.markdown("**DATA SCIENCE · FORECASTING · INVENTORY**")
 st.title("Retail demand forecasting")
-st.write(
-    "A portfolio case that turns five years of daily retail sales into a "
-    "28-day forecast and a practical inventory decision framework."
-)
+st.write("Five years of retail data transformed into business insight, a 28-day forecast and inventory decisions.")
+overview, seasonality, portfolio, forecasting, inventory, methods = st.tabs(["Executive overview","Seasonality","Stores & products","Forecasting","Inventory","Methodology"])
 
-metric_columns = st.columns(4)
-metric_columns[0].metric("Demand series", "30,490")
-metric_columns[1].metric("Products", "3,049")
-metric_columns[2].metric("Stores", "10")
-metric_columns[3].metric("Historical days", "1,941")
+with overview:
+    best_store=d["store_summary"].iloc[0]; cols=st.columns(5)
+    cols[0].metric("Units sold",f"{daily.units.sum()/1e6:.1f}M")
+    cols[1].metric("Estimated revenue",f"${daily.estimated_revenue.sum()/1e6:.1f}M")
+    cols[2].metric("Products",f"{len(d['product_summary']):,}")
+    cols[3].metric("Stores",f"{len(d['store_summary']):,}")
+    cols[4].metric("Top store",best_store.store_id)
+    left,right=st.columns(2)
+    with left: st.plotly_chart(px.bar(d["store_summary"].sort_values("estimated_revenue"),x="estimated_revenue",y="store_id",orientation="h",title="Estimated revenue by store"),width="stretch")
+    with right: st.plotly_chart(px.treemap(d["department_summary"],path=["dept_id"],values="estimated_revenue",color="estimated_revenue",title="Revenue contribution by department"),width="stretch")
+    yearly=daily.groupby("year",as_index=False).agg(units=("units","sum"),estimated_revenue=("estimated_revenue","sum"))
+    st.plotly_chart(px.bar(yearly,x="year",y="estimated_revenue",text_auto=".3s",title="Estimated revenue by year"),width="stretch")
+    st.caption("Revenue is estimated as units × weekly selling price. M5 has no basket ID, so a true average ticket cannot be calculated.")
 
-st.divider()
-left, right = st.columns([1.05, 1], gap="large")
+with seasonality:
+    fig=go.Figure([go.Scatter(x=daily.date,y=daily.units,name="Daily units",opacity=.3),go.Scatter(x=daily.date,y=daily.moving_average_28,name="28-day average",line=dict(width=3))]); fig.update_layout(title="Five-year demand history")
+    st.plotly_chart(fig,width="stretch")
+    st.plotly_chart(px.line(weekly[weekly.week_of_year<=52],x="week_of_year",y="units",color="year",title="Yearly demand curves by week"),width="stretch")
+    left,right=st.columns(2); order=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]
+    weekday=daily.groupby("weekday",as_index=False).units.mean(); weekday["weekday"]=pd.Categorical(weekday.weekday,order,ordered=True)
+    with left: st.plotly_chart(px.bar(weekday.sort_values("weekday"),x="weekday",y="units",title="Average units by weekday"),width="stretch")
+    with right: st.plotly_chart(px.line(daily.groupby("month",as_index=False).units.mean(),x="month",y="units",markers=True,title="Average daily demand by month"),width="stretch")
+    events=d["event_summary"].dropna(subset=["unit_lift"]).sort_values("unit_lift",ascending=False).head(15)
+    st.plotly_chart(px.bar(events.sort_values("unit_lift"),x="unit_lift",y="event_name",orientation="h",color="event_type",title="Event lift versus normal weekdays"),width="stretch")
 
-with left:
-    st.subheader("The business question")
-    st.write(
-        "How many units should each store expect to sell during the next 28 days, "
-        "and how can that forecast reduce stockouts and excess inventory?"
-    )
-    st.subheader("Dataset quality")
-    st.markdown(
-        """
-        - Daily coverage from **2011-01-29 to 2016-06-19**
-        - **6.84 million** store-item-week price records
-        - No duplicate calendar or price keys
-        - No missing `sell_price` values
-        """
-    )
+with portfolio:
+    left,right=st.columns(2)
+    with left: st.plotly_chart(px.bar(d["category_summary"],x="cat_id",y="estimated_revenue",color="cat_id",title="Revenue by category"),width="stretch")
+    with right: st.plotly_chart(px.scatter(d["store_summary"],x="units",y="estimated_revenue",text="store_id",size="estimated_revenue",title="Store productivity"),width="stretch")
+    n=st.slider("Products to display",10,50,20); products=d["product_summary"].head(n)
+    st.plotly_chart(px.bar(products.sort_values("estimated_revenue"),x="estimated_revenue",y="item_id",orientation="h",color="cat_id",title=f"Top {n} products"),width="stretch")
+    pareto=d["product_summary"].copy(); pareto["product_share"]=(pareto.index+1)/len(pareto)
+    st.plotly_chart(px.line(pareto,x="product_share",y="cumulative_revenue_share",title="Product revenue Pareto curve"),width="stretch")
 
-with right:
-    st.subheader("Project workflow")
-    st.markdown(
-        """
-        1. Audit calendar, sales and price tables
-        2. Define a leakage-free temporal holdout
-        3. Establish statistical baselines
-        4. Engineer lag, rolling, price and event features
-        5. Train and compare machine-learning models
-        6. Translate error into inventory decisions
-        """
-    )
+with forecasting:
+    metrics=d["model_metrics"].copy(); metrics["WAPE_percent"]=100*metrics.WAPE; best=metrics.sort_values("WAPE").iloc[0]; cols=st.columns(4)
+    cols[0].metric("Best model",best.model.replace("_"," ")); cols[1].metric("WAPE",f"{best.WAPE_percent:.2f}%"); cols[2].metric("MAE",f"{best.MAE:.3f}"); cols[3].metric("RMSSE",f"{best.RMSSE:.3f}")
+    st.plotly_chart(px.bar(metrics.sort_values("WAPE_percent",ascending=False),x="WAPE_percent",y="model",orientation="h",text_auto=".2f",title="28-day holdout accuracy"),width="stretch")
+    fc=d["forecast_daily"].melt("date",var_name="series",value_name="units")
+    st.plotly_chart(px.line(fc,x="date",y="units",color="series",title="Actual versus forecast demand"),width="stretch")
+    left,right=st.columns(2)
+    with left: st.plotly_chart(px.bar(d["forecast_by_store"].sort_values("WAPE"),x="store_id",y="WAPE",title="Error by store"),width="stretch")
+    with right: st.plotly_chart(px.bar(d["feature_importance"].head(12).sort_values("importance"),x="importance",y="feature",orientation="h",title="LightGBM feature importance"),width="stretch")
+    st.info("The 25% LightGBM hybrid improves the baseline slightly. The weaker pure LightGBM result remains visible for transparency.")
 
-st.divider()
-st.subheader("Baseline backtest")
-st.caption("Train: d_1–d_1913 · Test: d_1914–d_1941 · Horizon: 28 days")
+with inventory:
+    inv=d["inventory_summary"]
+    st.plotly_chart(px.bar(inv.melt("method",var_name="outcome",value_name="units"),x="method",y="units",color="outcome",barmode="group",title="Inventory trade-off"),width="stretch")
+    reduction=1-inv.iloc[1].stockout_units/inv.iloc[0].stockout_units; st.metric("Estimated stockout-unit reduction",f"{reduction:.1%}")
+    st.write("The simulator uses the 28-day order quantity, a 95% service assumption and a seven-day lead time to estimate safety stock and reorder points.")
 
-results = pd.DataFrame(
-    {
-        "Model": ["Mean · last 28 days", "Seasonal · 7 days", "Seasonal · 28 days", "Last value"],
-        "WAPE": [73.86, 86.22, 89.00, 95.16],
-        "RMSSE": [0.9240, 1.2010, 1.2445, 1.2063],
-        "MAE": [1.0657, 1.2440, 1.2840, 1.3730],
-    }
-)
-
-chart = px.bar(
-    results.sort_values("WAPE", ascending=False),
-    x="WAPE",
-    y="Model",
-    orientation="h",
-    text="WAPE",
-    color="WAPE",
-    color_continuous_scale=["#1f9d8a", "#f2b134", "#e35d6a"],
-    labels={"WAPE": "WAPE (%)"},
-)
-chart.update_traces(texttemplate="%{text:.2f}%", textposition="outside")
-chart.update_layout(
-    height=390,
-    margin=dict(l=10, r=40, t=10, b=10),
-    coloraxis_showscale=False,
-    plot_bgcolor="rgba(0,0,0,0)",
-    paper_bgcolor="rgba(0,0,0,0)",
-)
-st.plotly_chart(chart, use_container_width=True)
-
-best = results.loc[results["WAPE"].idxmin()]
-st.success(
-    f"Current benchmark: {best['Model']} with {best['WAPE']:.2f}% WAPE. "
-    "The machine-learning model must beat this result on the same holdout period."
-)
-
-with st.expander("Metric definitions"):
-    st.markdown(
-        """
-        - **MAE:** average absolute unit error.
-        - **WAPE:** total absolute error divided by total actual demand.
-        - **RMSSE:** scaled error that allows comparison across products with different demand levels.
-        """
-    )
-
-st.divider()
-st.subheader("Next experiment")
-st.write(
-    "Train a global LightGBM model using demand lags, rolling statistics, price changes, "
-    "calendar events and product/store identifiers. Evaluate it on the unchanged 28-day holdout."
-)
-st.caption("Built by Eric Villegas · Data Science & AI portfolio project")
-
+with methods:
+    st.subheader("Workflow")
+    st.markdown("1. Validate sales, calendar and price keys.\n2. Separate valid zero demand from quality problems.\n3. Estimate revenue as units × weekly price.\n4. Preserve a 28-day future holdout.\n5. Compare statistical baselines, LightGBM and transparent hybrids.\n6. Translate forecasts into inventory outcomes.")
+    st.subheader("Limitations")
+    st.write("M5 contains aggregated demand, not transactions, customers, inventory-on-hand or purchase orders. Revenue and inventory outcomes are analytical estimates.")
+    st.caption("Built by Eric Villegas · Data Science & AI portfolio project")

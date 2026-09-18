@@ -1,0 +1,3 @@
+method,stockout_units,excess_units
+Baseline,196782.0,148644.0
+hybrid_25pct_lgbm,180255.62,157087.38
