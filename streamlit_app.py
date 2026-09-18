@@ -78,7 +78,11 @@ with forecasting:
     c2.metric("Store-total WAPE",f"{best_store_model.WAPE_percent:.2f}%")
     c3.metric("Store-total MAE",f"{best_store_model.MAE:,.2f} units/day")
     st.plotly_chart(px.bar(store_metrics.sort_values("WAPE_percent",ascending=False),x="WAPE_percent",y="model",orientation="h",text_auto=".2f",title="Store-total model accuracy · same 28-day holdout",labels={"WAPE_percent":"WAPE (%)","model":"Model"}),width="stretch")
-    st.dataframe(store_metrics[["model","MAE","WAPE","Bias"]].style.format({"MAE":"{:,.2f}","WAPE":"{:.2%}","Bias":"{:+.2%}"}),hide_index=True,width="stretch")
+    store_metrics_table=store_metrics[["model","MAE","WAPE","Bias"]].copy()
+    store_metrics_table["MAE"]=store_metrics_table.MAE.map(lambda value: f"{value:,.2f}")
+    store_metrics_table["WAPE"]=store_metrics_table.WAPE.map(lambda value: f"{value:.2%}")
+    store_metrics_table["Bias"]=store_metrics_table.Bias.map(lambda value: f"{value:+.2%}")
+    st.dataframe(store_metrics_table,hide_index=True,width="stretch")
     st.caption("This comparison aggregates all products and categories within each of the 10 stores. Its WAPE and MAE are not directly comparable with the item-store results above. Prophet uses weekly/yearly seasonality and M5 event dates; NeuralProphet uses weekly/yearly seasonality and the same events; SARIMAX uses weekly seasonality, annual Fourier terms, weekdays and M5 event indicators.")
 
 with inventory:
