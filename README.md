@@ -5,6 +5,8 @@
 
 Portfolio project based on the **M5 Forecasting - Accuracy** dataset. The project turns daily retail history into a reproducible forecasting workflow and a practical inventory decision tool.
 
+Every notebook includes saved outputs from a successful end-to-end run. Recruiters can review the tables, charts, model metrics and conclusions directly on GitHub or Colab without a Kaggle account. Kaggle authentication is required only when someone chooses to rerun the raw-data pipeline, and each person must use their own private token.
+
 ## Business question
 
 How many units should each store expect to sell during the next 28 days, and how can that forecast reduce stockouts and excess inventory?
