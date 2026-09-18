@@ -65,6 +65,8 @@ path = kagglehub.competition_download("m5-forecasting-accuracy")
 print("Path to competition files:", path)
 ```
 
+In Google Colab, add the token to the **Secrets** panel with the name `KAGGLE_API_TOKEN` and enable notebook access. If that secret is missing, every notebook detects the authentication error, opens `kagglehub.login()` and retries the download after you paste the token.
+
 KaggleHub provides these source files:
 
 - `calendar.csv`
