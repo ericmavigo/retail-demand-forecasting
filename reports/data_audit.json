@@ -1,0 +1,109 @@
+{
+  "dataset": "M5 Forecasting - Accuracy",
+  "files": {
+    "calendar.csv": {
+      "size_mb": 0.1,
+      "rows": 1969,
+      "columns": 14,
+      "first_columns": [
+        "date",
+        "wm_yr_wk",
+        "weekday",
+        "wday",
+        "month",
+        "year",
+        "d",
+        "event_name_1",
+        "event_type_1",
+        "event_name_2",
+        "event_type_2",
+        "snap_CA"
+      ]
+    },
+    "sales_train_evaluation.csv": {
+      "size_mb": 116.1,
+      "rows": 30490,
+      "columns": 1947,
+      "first_columns": [
+        "id",
+        "item_id",
+        "dept_id",
+        "cat_id",
+        "store_id",
+        "state_id",
+        "d_1",
+        "d_2",
+        "d_3",
+        "d_4",
+        "d_5",
+        "d_6"
+      ]
+    },
+    "sales_train_validation.csv": {
+      "size_mb": 114.45,
+      "rows": 30490,
+      "columns": 1919,
+      "first_columns": [
+        "id",
+        "item_id",
+        "dept_id",
+        "cat_id",
+        "store_id",
+        "state_id",
+        "d_1",
+        "d_2",
+        "d_3",
+        "d_4",
+        "d_5",
+        "d_6"
+      ]
+    },
+    "sample_submission.csv": {
+      "size_mb": 4.99,
+      "rows": 60980,
+      "columns": 29,
+      "first_columns": [
+        "id",
+        "F1",
+        "F2",
+        "F3",
+        "F4",
+        "F5",
+        "F6",
+        "F7",
+        "F8",
+        "F9",
+        "F10",
+        "F11"
+      ]
+    },
+    "sell_prices.csv": {
+      "size_mb": 193.97,
+      "rows": 6841121,
+      "columns": 4,
+      "first_columns": [
+        "store_id",
+        "item_id",
+        "wm_yr_wk",
+        "sell_price"
+      ]
+    }
+  },
+  "time_coverage": {
+    "start": "2011-01-29",
+    "end": "2016-06-19",
+    "calendar_days": 1969,
+    "sales_days": 1941
+  },
+  "dimensions": {
+    "stores": 10,
+    "items_with_prices": 3049,
+    "store_item_price_records": 6841121,
+    "events": 30
+  },
+  "quality_checks": {
+    "duplicate_calendar_days": 0,
+    "duplicate_price_keys": 0,
+    "missing_prices": 0
+  }
+}
