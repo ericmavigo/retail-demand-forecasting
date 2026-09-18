@@ -10,7 +10,7 @@ DATA = Path(__file__).parent / "app_data"
 
 @st.cache_data
 def load_data():
-    names = ["daily_overview","weekly_overview","store_summary","category_summary","department_summary","product_summary","event_summary","model_metrics","forecast_daily","forecast_by_store","feature_importance","inventory_summary"]
+    names = ["daily_overview","weekly_overview","store_summary","category_summary","department_summary","product_summary","event_summary","model_metrics","store_model_comparison","forecast_daily","forecast_by_store","feature_importance","inventory_summary"]
     result = {name: pd.read_csv(DATA / f"{name}.csv") for name in names}
     for name in ["daily_overview","weekly_overview","forecast_daily"]:
         result[name]["date"] = pd.to_datetime(result[name]["date"])
@@ -67,6 +67,20 @@ with forecasting:
     with right: st.plotly_chart(px.bar(d["feature_importance"].head(12).sort_values("importance"),x="importance",y="feature",orientation="h",title="LightGBM feature importance"),width="stretch")
     st.info("The 25% LightGBM hybrid improves the baseline slightly. The weaker pure LightGBM result remains visible for transparency.")
 
+    st.divider()
+    st.subheader("Store-total model comparison")
+    st.write("A second comparison forecasts each store's combined demand across all products and categories. It uses the same 28-day holdout for every model.")
+    store_metrics=d["store_model_comparison"].copy()
+    store_metrics["WAPE_percent"]=100*store_metrics.WAPE
+    best_store_model=store_metrics.sort_values("WAPE").iloc[0]
+    c1,c2,c3=st.columns(3)
+    c1.metric("Best store-total model",best_store_model.model)
+    c2.metric("Store-total WAPE",f"{best_store_model.WAPE_percent:.2f}%")
+    c3.metric("Store-total MAE",f"{best_store_model.MAE:,.2f} units/day")
+    st.plotly_chart(px.bar(store_metrics.sort_values("WAPE_percent",ascending=False),x="WAPE_percent",y="model",orientation="h",text_auto=".2f",title="Store-total model accuracy · same 28-day holdout",labels={"WAPE_percent":"WAPE (%)","model":"Model"}),width="stretch")
+    st.dataframe(store_metrics[["model","MAE","WAPE","Bias"]].style.format({"MAE":"{:,.2f}","WAPE":"{:.2%}","Bias":"{:+.2%}"}),hide_index=True,width="stretch")
+    st.caption("This comparison aggregates all products and categories within each of the 10 stores. Its WAPE and MAE are not directly comparable with the item-store results above. Prophet uses weekly/yearly seasonality and M5 event dates; NeuralProphet uses weekly/yearly seasonality and the same events; SARIMAX uses weekly seasonality, annual Fourier terms, weekdays and M5 event indicators.")
+
 with inventory:
     inv=d["inventory_summary"]
     st.plotly_chart(px.bar(inv.melt("method",var_name="outcome",value_name="units"),x="method",y="units",color="outcome",barmode="group",title="Inventory trade-off"),width="stretch")
@@ -75,7 +89,7 @@ with inventory:
 
 with methods:
     st.subheader("Workflow")
-    st.markdown("1. Validate sales, calendar and price keys.\n2. Separate valid zero demand from quality problems.\n3. Estimate revenue as units × weekly price.\n4. Preserve a 28-day future holdout.\n5. Compare statistical baselines, LightGBM and transparent hybrids.\n6. Translate forecasts into inventory outcomes.")
+    st.markdown("1. Validate sales, calendar and price keys.\n2. Separate valid zero demand from quality problems.\n3. Estimate revenue as units × weekly price.\n4. Preserve a 28-day future holdout.\n5. Compare item-store models and store-total statistical/ML forecasts on a shared holdout.\n6. Translate forecasts into inventory outcomes.")
     st.subheader("Limitations")
     st.write("M5 contains aggregated demand, not transactions, customers, inventory-on-hand or purchase orders. Revenue and inventory outcomes are analytical estimates.")
     st.caption("Built by Eric Villegas · Data Science & AI portfolio project")
