@@ -1,6 +1,7 @@
 # Retail Demand Forecasting and Inventory Decisions
 
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://eric-retail-demand-forecasting.streamlit.app/)
+[![Run Complete Project in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ericmavigo/retail-demand-forecasting/blob/main/notebooks/00_RUN_COMPLETE_PROJECT_IN_COLAB.ipynb)
 
 Portfolio project based on the **M5 Forecasting - Accuracy** dataset. The project turns daily retail history into a reproducible forecasting workflow and a practical inventory decision tool.
 
@@ -92,10 +93,11 @@ src/            Reusable Python code
 
 The complete work is organized as executable notebooks:
 
-1. [`01_m5_demand_forecasting.ipynb`](notebooks/01_m5_demand_forecasting.ipynb) — data access and statistical baseline.
-2. [`02_data_cleaning_and_eda.ipynb`](notebooks/02_data_cleaning_and_eda.ipynb) — cleaning, executive analysis and five-year seasonality.
-3. [`03_lightgbm_forecasting.ipynb`](notebooks/03_lightgbm_forecasting.ipynb) — global model, hybrids and holdout evaluation.
-4. [`04_inventory_decisions.ipynb`](notebooks/04_inventory_decisions.ipynb) — safety stock, reorder points and inventory trade-offs.
+1. **[`00_RUN_COMPLETE_PROJECT_IN_COLAB.ipynb`](notebooks/00_RUN_COMPLETE_PROJECT_IN_COLAB.ipynb)** — easiest option; configures Colab and runs the complete project.
+2. [`01_m5_demand_forecasting.ipynb`](notebooks/01_m5_demand_forecasting.ipynb) — data access and statistical baseline.
+3. [`02_data_cleaning_and_eda.ipynb`](notebooks/02_data_cleaning_and_eda.ipynb) — cleaning, executive analysis and five-year seasonality.
+4. [`03_lightgbm_forecasting.ipynb`](notebooks/03_lightgbm_forecasting.ipynb) — global model, hybrids and holdout evaluation.
+5. [`04_inventory_decisions.ipynb`](notebooks/04_inventory_decisions.ipynb) — safety stock, reorder points and inventory trade-offs.
 
 GitHub renders every notebook; JupyterLab, VS Code, Kaggle and Google Colab can run and edit them.
 
