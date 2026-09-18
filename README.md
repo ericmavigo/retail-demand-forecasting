@@ -13,12 +13,12 @@ How many units should each store expect to sell during the next 28 days, and how
 
 The M5 data contains more than five years of daily sales for 30,490 item-store series, including prices, events and calendar variables. It supports a realistic portfolio case with time-series validation, feature engineering, model comparison and business metrics.
 
-## Planned deliverables
+## Delivered workflow
 
 1. Data-quality and demand-pattern audit.
 2. Seasonal-naive baseline.
-3. Global gradient-boosting model using lag, rolling, price and calendar features.
-4. Rolling-origin backtesting over 28-day horizons.
+3. Global gradient-boosting model using lag, rolling and calendar features.
+4. Leakage-free backtesting over a 28-day future horizon.
 5. Evaluation with MAE, WAPE and RMSSE.
 6. Inventory simulation translating forecast error into stockouts, holding cost and service level.
 7. Interactive dashboard for stores, categories and products.
@@ -56,13 +56,16 @@ First accept the competition rules at:
 
 https://www.kaggle.com/competitions/m5-forecasting-accuracy/data
 
-Create an API token at `https://www.kaggle.com/settings/api`; keep that secret outside the repository. Then use Kaggle's official client:
+Create an API token at `https://www.kaggle.com/settings/api`; keep that secret outside the repository. Every notebook downloads the official competition files directly:
 
-```powershell
-python src/download_data.py --output-dir data/raw
+```python
+import kagglehub
+
+path = kagglehub.competition_download("m5-forecasting-accuracy")
+print("Path to competition files:", path)
 ```
 
-The downloader retrieves these files into `data/raw/`:
+KaggleHub provides these source files:
 
 - `calendar.csv`
 - `sales_train_evaluation.csv`
@@ -72,23 +75,14 @@ The downloader retrieves these files into `data/raw/`:
 
 ## Quick start
 
-```powershell
-python -m pip install -r requirements-dev.txt
-python src/download_data.py --output-dir data/raw
-python src/data_audit.py --data-dir data/raw --output-dir reports
-python src/baseline.py --data-dir data/raw --output-dir reports
-```
-
-The audit writes `reports/data_audit.json` and `reports/data_audit.md`. The backtest writes `reports/baseline_metrics.csv` and `reports/baseline_results.md`.
+Open the complete notebook in Colab, authenticate with Kaggle when prompted and select **Runtime → Run all**. The notebook contains the download, validation, joins, analysis, forecasting and inventory calculations in visible cells.
 
 ## Repository structure
 
 ```text
-data/raw/       Kaggle files (ignored by Git)
-notebooks/      Editable end-to-end Python analysis
-app_data/       Small aggregated tables used by the public dashboard
-reports/        Generated audit and model reports
-src/            Reusable Python code
+notebooks/       Self-contained, editable portfolio analysis
+app_data/        Small aggregated tables used by the public dashboard
+streamlit_app.py Recruiter-facing interactive presentation
 ```
 
 The complete work is organized as executable notebooks:
@@ -99,8 +93,8 @@ The complete work is organized as executable notebooks:
 4. [`03_lightgbm_forecasting.ipynb`](notebooks/03_lightgbm_forecasting.ipynb) — global model, hybrids and holdout evaluation.
 5. [`04_inventory_decisions.ipynb`](notebooks/04_inventory_decisions.ipynb) — safety stock, reorder points and inventory trade-offs.
 
-GitHub renders every notebook; JupyterLab, VS Code, Kaggle and Google Colab can run and edit them.
+Each notebook independently downloads Kaggle data and performs its own transformations. No hidden project scripts are required. GitHub renders every notebook; JupyterLab, VS Code, Kaggle and Google Colab can run and edit them.
 
 ## Portfolio narrative
 
-This project combines data science with operations experience: forecasts are evaluated both statistically and through inventory outcomes. The final result will show how model quality changes purchasing decisions, product availability and working capital.
+This project combines data science with operations experience: forecasts are evaluated both statistically and through inventory outcomes. The result shows how model quality changes purchasing decisions, product availability and working capital.

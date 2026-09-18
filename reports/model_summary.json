@@ -1,5 +1,0 @@
-{
-  "best_model": "hybrid_25pct_lgbm",
-  "best_wape": 0.7376639246940613,
-  "training_samples": 800000
-}
