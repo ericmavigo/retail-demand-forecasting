@@ -1,0 +1,8 @@
+-r requirements.txt
+kagglehub>=1.0,<2
+jupyterlab>=4,<5
+scikit-learn>=1.5,<2
+lightgbm>=4.5,<5
+matplotlib>=3.9,<4
+seaborn>=0.13,<1
+pyarrow>=17,<26

@@ -72,7 +72,7 @@ The downloader retrieves these files into `data/raw/`:
 ## Quick start
 
 ```powershell
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
 python src/download_data.py --output-dir data/raw
 python src/data_audit.py --data-dir data/raw --output-dir reports
 python src/baseline.py --data-dir data/raw --output-dir reports
