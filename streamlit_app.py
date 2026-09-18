@@ -62,8 +62,8 @@ st.markdown('<div class="section-kicker">Executive readout</div>', unsafe_allow_
 hero_cols = st.columns(4)
 hero_cols[0].metric("Units sold", f"{daily.units.sum()/1e6:.1f}M")
 hero_cols[1].metric("Estimated revenue", f"${daily.estimated_revenue.sum()/1e6:.1f}M")
-hero_cols[2].metric("Best item-store model", item_best_name, f"{item_best.WAPE:.2%} WAPE · lower is better", delta_color="off")
-hero_cols[3].metric("Best store-total model", store_best.model, f"{store_best.WAPE:.2%} WAPE · lower is better", delta_color="off")
+hero_cols[2].metric("Best item-store WAPE", f"{item_best.WAPE:.2%}", help=f"Winner: {item_best_name}. Lower is better.")
+hero_cols[3].metric("Best store-total WAPE", f"{store_best.WAPE:.2%}", help=f"Winner: {store_best.model}. Lower is better.")
 st.info(f"**Two answers at two levels:** **{item_best_name}** leads on individual item-store series ({item_best.WAPE:.2%} WAPE), while **{store_best.model}** leads after products are combined inside each store ({store_best.WAPE:.2%}). The aggregation differs, so compare models within each panel.")
 
 st.markdown('<div class="section-kicker">01 · The forecasting challenge</div>', unsafe_allow_html=True)
@@ -228,3 +228,4 @@ For the full audit trail, see the [detailed project walkthrough](https://github.
 """)
 
 st.caption("Built by Eric Villegas · Data science and operations portfolio · M5 Forecasting dataset")
+
